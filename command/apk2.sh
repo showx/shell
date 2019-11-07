@@ -8,6 +8,11 @@ apk_out_dir=$bin_dir/apkout
 apk_file_dir=$bin_dir/apkfile
 apk_sign_dir=$bin_dir/apksign
 
+
+HOST='192.168.0.112'
+USER='apk'
+PASSWD='a123456'
+
 #获取文件夹下面文件，该文件夹不能有子文件夹，不再作判断
 function read_dir(){
 
@@ -21,6 +26,8 @@ function read_dir(){
 	# do  
 	#         echo "init."  
 	# done >&6  
+
+	# FILE='filelist.txt'
 
 
 	echo "read:"$1;
@@ -51,8 +58,23 @@ function read_dir(){
 		fi
 		# 删除签名完的源文件
 		unlink $rfile
-	}&
-	done
+
+		#打包完之后上传到指定的ftp
+		folder=${basefilename:1:9}
+		echo "【上传】"$basefilename"正在上传到共享盘！";
+ftp -n<<END_SCRIPT
+open $HOST
+user $USER $PASSWD
+cd apk
+mkdir $folder
+put $apk_sign_dir/$basefilename".apk" /apk/$folder/$basefilename".apk"
+quit
+END_SCRIPT
+		#上传完之后，删除sign文件
+		unlink 
+	}& #并行的方法
+	# } #普通的方法
+	done $apk_sign_dir/$basefilename".apk"
 	echo 'wait'
 	wait
 }
@@ -63,9 +85,10 @@ read_dir $apk_dir 2
 exit;
 #先自动下载到指定文件夹
 nums=(
-	https://www.bidu.com
-	https://www.qq.com
+	http://www.baidu.com
+	http://www.baidu.com
 )
+nums=($(awk '{print $1}' filelist.txt))
 for str in ${nums[@]};
 do
 {
@@ -78,5 +101,4 @@ do
 }&	
 done
 wait
-# read_dir $apk_dir 2
 echo "finish"
