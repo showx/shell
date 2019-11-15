@@ -54,34 +54,44 @@ function read_dir(){
 		else
 			echo 'type:other';
 			# 白包，直接打签名
-			echo bbq123|jarsigner -verbose -keystore /code/android/package/test.keystore -signedjar $apk_sign_dir/$basefilename".apk" $apk_dir/$file test.keystore
+			# echo bbq123|jarsigner -verbose -keystore /code/android/package/test.keystore -signedjar $apk_sign_dir/$basefilename".apk" $apk_dir/$file test.keystore
+			#已签名的包，不用再解包,直接签名
+			java -jar /code/android/package/signapk.jar /code/android/package/test.pem /code/android/package/test.pk8 $apk_dir/$file $apk_sign_dir/$basefilename".apk"
+			
 		fi
 		# 删除签名完的源文件
 		unlink $rfile
 
 		#打包完之后上传到指定的ftp
-		folder=${basefilename:1:9}
+		# folder=${basefilename:0:9}
+		folder=${basefilename:0-13:6}
 		echo "【上传】"$basefilename"正在上传到共享盘！";
+
+		# 有可能没打包好就上传了？
+		#测试顺序执行
 ftp -n<<END_SCRIPT
 open $HOST
 user $USER $PASSWD
+binary       //二进制镜像传输
 cd apk
 mkdir $folder
 put $apk_sign_dir/$basefilename".apk" /apk/$folder/$basefilename".apk"
+prompt
 quit
 END_SCRIPT
-		#上传完之后，删除sign文件
-		unlink 
-	}& #并行的方法
-	# } #普通的方法
-	done $apk_sign_dir/$basefilename".apk"
+		#上传完之后，删除sign文件 不能直接这样写
+		# unlink $apk_sign_dir/$basefilename".apk" 
+	# }& #并行的方法
+	} #普通的方法
+	done 
 	echo 'wait'
 	wait
 }
 
 
 echo "start"
-read_dir $apk_dir 2
+# read_dir $apk_dir 2 #解包方式2
+read_dir $apk_dir 1   #直签方式1
 exit;
 #先自动下载到指定文件夹
 nums=(
@@ -101,4 +111,4 @@ do
 }&	
 done
 wait
-echo "finish"
+echo "finish";
